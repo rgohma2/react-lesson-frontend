@@ -11,7 +11,14 @@ class Name extends Component {
 
 		this.state = {
 			dogs: [],
-			idOfDogToEdit: -1
+			editModalOpen: false,
+			// this will be the data we are editing with the form in the modal
+			dogToEdit: {
+				name: '',
+				breed: '',
+				owner: '',
+				id: ''
+			}
 		}
 	}
 
@@ -90,31 +97,42 @@ class Name extends Component {
 		}catch(err){
 			console.log(err)
 		}
-
 	}
 
 	editDog = (id) => {
 		console.log('dog we want to edit, id:', id);
-		console.log(this.state.dogs.find((dog) => {
-			if (dog.id === id) {
-				return true
-			} else {
-				return false
-			}
-		}));
+		// console.log(this.state.dogs.find((dog) => {
+		// 	if (dog.id === id) {
+		// 		return true
+		// 	} else {
+		// 		return false
+		// 	}
+		// }));
+		const dogToEdit = this.state.dogs.find(dog => dog.id === id)
 		this.setState({
-			idOfDogToEdit: id
+			editModalOpen: true,
+			dogToEdit: {
+				...dogToEdit
+			}
 		})
 	}
 
-	 updateDog = async (newDogInfo) => {
-		console.log('trying to update dog at index', this.state.idOfDogToEdit);
-		console.log(newDogInfo);
+	handleEditChange = (event) => {
+		this.setState({
+			dogToEdit: {
+				...this.state.dogToEdit,
+				[event.target.name]: event.target.value
+			}
+		})
+	}
+
+	 updateDog = async (e) => {
+	 	e.preventDefault()
 		try{
-			const response = await fetch(process.env.REACT_APP_API_URL + '/api/v1/dogs/' + this.state.idOfDogToEdit, 
+			const response = await fetch(process.env.REACT_APP_API_URL + '/api/v1/dogs/' + this.state.dogToEdit.id, 
 			{
 				method: 'PUT',
-				body: JSON.stringify(newDogInfo),
+				body: JSON.stringify(this.state.dogToEdit),
 				headers: {
 					'Content-Type': 'application/json'
 				}
@@ -124,21 +142,21 @@ class Name extends Component {
 
 			if (response.status === 200) {
 				const dogs = this.state.dogs
-				const index = dogs.findIndex(dog => dog.id === this.state.idOfDogToEdit)
+				const index = dogs.findIndex(dog => dog.id === this.state.dogToEdit.id)
 				dogs[index] = updatedDogJson.data
 				this.setState({
 					dogs: dogs
 				})
-				this.closeUpdate()
+				this.closeModal()
 			}
 		}catch(err){
 			console.log(err)
 		}
 	}
 
-	closeUpdate = () => {
+	closeModal = () => {
 		this.setState({
-			idOfDogToEdit: -1
+			editModalOpen: false
 		})
 	}
 
@@ -155,17 +173,13 @@ class Name extends Component {
 				<Grid.Column>
 					<NewDogForm addDog={this.addDog}/>
 				</Grid.Column>
-				{
-					this.state.idOfDogToEdit !== -1
-					? 
-					<EditDogModal dogToEdit= {
-						this.state.dogs.find((dog) => dog.id === this.state.idOfDogToEdit)
-					}
-					updateDog={this.updateDog}
-					closeUpdate={this.closeUpdate}/>
-					: 
-					null
-				}
+				<EditDogModal 
+				dogToEdit= {this.state.dogToEdit}
+				open={this.state.editModalOpen}
+				updateDog={this.updateDog}
+				closeModal={this.closeModal}
+				handleEditChange={this.handleEditChange}
+				/>
 			</Grid>
 		)
 	}
